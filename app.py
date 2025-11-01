@@ -5,6 +5,7 @@ import psycopg2
 import psycopg2.extras
 import os
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -162,8 +163,22 @@ def test_gemini():
         if not GEMINI_API_KEY or not GEMINI_API_KEY.strip():
             return jsonify({'error': 'API ключ не настроен', 'key_set': False}), 500
         
-        # Try simple API call
-        model = genai.GenerativeModel('gemini-pro')
+        # Try simple API call with updated model names
+        model = None
+        model_names = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-pro']
+        
+        for model_name in model_names:
+            try:
+                model = genai.GenerativeModel(model_name)
+                break
+            except google_exceptions.NotFound:
+                continue
+            except Exception:
+                continue
+        
+        if model is None:
+            return jsonify({'error': 'Не удалось найти доступную модель Gemini'}), 500
+        
         response = model.generate_content("Скажи привет одним словом")
         
         return jsonify({
@@ -173,6 +188,23 @@ def test_gemini():
             'key_preview': f"{GEMINI_API_KEY[:10]}...",
             'key_length': len(GEMINI_API_KEY)
         })
+    except google_exceptions.PermissionDenied as e:
+        return jsonify({
+            'error': 'Нет доступа к API. Проверьте API ключ и права доступа.',
+            'details': str(e),
+            'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
+        }), 500
+    except google_exceptions.NotFound as e:
+        return jsonify({
+            'error': 'Модель не найдена или недоступна.',
+            'details': str(e),
+            'error_type': 'NotFound'
+        }), 404
+    except google_exceptions.ResourceExhausted as e:
+        return jsonify({
+            'error': 'Достигнут лимит запросов. Попробуйте позже.',
+            'details': str(e)
+        }), 429
     except Exception as e:
         error_msg = str(e)
         error_type = type(e).__name__
@@ -227,16 +259,23 @@ def api_chat():
             return jsonify({'error': f'Ошибка конфигурации API: {str(config_error)}'}), 500
         
         # Try to use the latest model, fallback to gemini-pro
+        # Updated model names for v1beta API
         model = None
-        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+        model_names = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-pro']
         
         for model_name in model_names:
             try:
                 model = genai.GenerativeModel(model_name)
-                # Test if model works by trying to access it
+                # Model initialized successfully
                 break
+            except google_exceptions.NotFound:
+                # Model not found, try next one
+                if model_name == model_names[-1]:  # Last model
+                    raise google_exceptions.NotFound(f"None of the models are available: {model_names}")
+                continue
             except Exception as model_error:
-                if model_name == model_names[-1]:  # Last model, raise the error
+                # Other errors, try next model or raise if last
+                if model_name == model_names[-1]:
                     raise model_error
                 continue
         
@@ -277,10 +316,18 @@ def api_chat():
         return jsonify({
             'response': response_text
         })
+    except google_exceptions.PermissionDenied as e:
+        return jsonify({'error': 'Нет доступа к API. Проверьте API ключ и права доступа.', 'details': str(e)}), 500
+    except google_exceptions.NotFound as e:
+        return jsonify({'error': 'Модель не найдена или недоступна. Попробую другую модель.', 'details': str(e)}), 404
+    except google_exceptions.InvalidArgument as e:
+        return jsonify({'error': 'Неверные параметры запроса.', 'details': str(e)}), 400
+    except google_exceptions.ResourceExhausted as e:
+        return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.', 'details': str(e)}), 429
     except Exception as e:
         error_msg = str(e)
         error_type = type(e).__name__
-        # Log full error for debugging (you can add logging here)
+        # Log full error for debugging
         print(f"Chat API Error [{error_type}]: {error_msg}")
         
         # Provide user-friendly error messages based on error content
