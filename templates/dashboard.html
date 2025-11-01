@@ -29,12 +29,68 @@
         <p style="color: #8b949e; line-height: 1.6; margin-bottom: 1.5rem;">
             Общайтесь с AI-ассистентом на основе Gemini. Задавайте вопросы, получайте помощь и исследуйте возможности искусственного интеллекта.
         </p>
-        <a href="{{ url_for('chat') }}" style="display: inline-block;">
-            <button class="btn" style="background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%); min-width: 200px;">
-                Открыть чат →
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('chat') }}" style="display: inline-block;">
+                <button class="btn" style="background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%); min-width: 200px;">
+                    Открыть чат →
+                </button>
+            </a>
+            <button id="testApiBtn" class="btn" style="background: #30363d; border: 1px solid #484f58; min-width: 200px;">
+                Тест API
             </button>
-        </a>
+        </div>
+        <div id="apiTestResult" style="margin-top: 1rem; display: none;"></div>
     </div>
+    
+    <script>
+        document.getElementById('testApiBtn')?.addEventListener('click', async function() {
+            const btn = this;
+            const resultDiv = document.getElementById('apiTestResult');
+            const originalText = btn.innerHTML;
+            
+            btn.disabled = true;
+            btn.innerHTML = 'Тестирую...';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div style="color: #8b949e;">Проверяю подключение к Gemini API...</div>';
+            
+            try {
+                const response = await fetch('/api/test-gemini');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div style="background: rgba(46, 160, 67, 0.1); border: 1px solid rgba(46, 160, 67, 0.3); padding: 1rem; border-radius: 8px; color: #3fb950;">
+                            <strong>✓ API работает!</strong><br>
+                            <small style="color: #8b949e;">Ответ: ${data.response}</small>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
+                            <strong>✗ Ошибка:</strong> ${data.error}<br>
+                            ${data.details ? `<small style="color: #8b949e;">${data.details}</small>` : ''}
+                            <br><br>
+                            <small style="color: #8b949e;">
+                                Проверьте:<br>
+                                1. Установлена ли библиотека: <code>pip install google-generativeai</code><br>
+                                2. Правильность API ключа в app.py<br>
+                                3. Активен ли ключ в <a href="https://ai.google.dev/" target="_blank" style="color: #58a6ff;">Google AI Studio</a>
+                            </small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
+                        <strong>✗ Ошибка подключения:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        });
+    </script>
 
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
         <a href="{{ url_for('index') }}" style="flex: 1; min-width: 150px;">

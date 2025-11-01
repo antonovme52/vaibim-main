@@ -14,7 +14,16 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # Gemini API configuration
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDXvXzD2xqmsWQFv2FqnyYD9ER22qbkIgY")
-genai.configure(api_key=GEMINI_API_KEY)
+
+# Configure Gemini API
+try:
+    if GEMINI_API_KEY and GEMINI_API_KEY.strip():
+        genai.configure(api_key=GEMINI_API_KEY.strip())
+        print(f"Gemini API настроен. Ключ: {GEMINI_API_KEY[:10]}...")
+    else:
+        print("Внимание: GEMINI_API_KEY не установлен!")
+except Exception as e:
+    print(f"Ошибка при настройке Gemini API: {e}")
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -142,6 +151,38 @@ def chat():
     return render_template('chat.html')
 
 
+@app.route('/api/test-gemini')
+@login_required
+def test_gemini():
+    """Тестовый эндпоинт для проверки работы Gemini API"""
+    try:
+        if not GEMINI_API_KEY or not GEMINI_API_KEY.strip():
+            return jsonify({'error': 'API ключ не настроен', 'key_set': False}), 500
+        
+        # Try simple API call
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content("Скажи привет одним словом")
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Gemini API работает!',
+            'response': response.text,
+            'key_preview': f"{GEMINI_API_KEY[:10]}...",
+            'key_length': len(GEMINI_API_KEY)
+        })
+    except genai.errors.InvalidAPIKeyError as e:
+        return jsonify({
+            'error': 'Неверный API ключ',
+            'details': str(e),
+            'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
+        }), 500
+    except Exception as e:
+        return jsonify({
+            'error': f'Ошибка при тестировании: {str(e)}',
+            'error_type': type(e).__name__
+        }), 500
+
+
 @app.route('/api/chat', methods=['POST'])
 @login_required
 def api_chat():
@@ -153,44 +194,90 @@ def api_chat():
         if not message:
             return jsonify({'error': 'Сообщение не может быть пустым'}), 400
         
-        # Try to use the latest model, fallback to gemini-pro
+        # Verify API key is configured and re-configure if needed
+        api_key = GEMINI_API_KEY.strip() if GEMINI_API_KEY else None
+        if not api_key or api_key == '':
+            return jsonify({'error': 'API ключ не настроен. Установите GEMINI_API_KEY'}), 500
+        
+        # Re-configure API key to ensure it's set correctly
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
-        except:
+            genai.configure(api_key=api_key)
+        except Exception as config_error:
+            return jsonify({'error': f'Ошибка конфигурации API: {str(config_error)}'}), 500
+        
+        # Try to use the latest model, fallback to gemini-pro
+        model = None
+        model_names = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
+        
+        for model_name in model_names:
             try:
-                model = genai.GenerativeModel('gemini-1.5-pro')
-            except:
-                model = genai.GenerativeModel('gemini-pro')
+                model = genai.GenerativeModel(model_name)
+                # Test if model works by trying to access it
+                break
+            except Exception as model_error:
+                if model_name == model_names[-1]:  # Last model, raise the error
+                    raise model_error
+                continue
+        
+        if model is None:
+            return jsonify({'error': 'Не удалось инициализировать модель Gemini'}), 500
         
         # Build conversation context if history is provided
         if history and len(history) > 0:
             # Convert history to the format expected by Gemini
             chat_history = []
             for msg in history[-10:]:  # Keep last 10 messages for context
-                role = 'user' if msg.get('isUser') else 'model'
-                chat_history.append({
-                    'role': role,
-                    'parts': [msg.get('content', '')]
-                })
+                if msg.get('content'):
+                    role = 'user' if msg.get('isUser') else 'model'
+                    chat_history.append({
+                        'role': role,
+                        'parts': [msg.get('content', '')]
+                    })
             
             # Start a chat session with history
-            chat = model.start_chat(history=chat_history)
-            response = chat.send_message(message)
+            if chat_history:
+                chat = model.start_chat(history=chat_history)
+                response = chat.send_message(message)
+            else:
+                # No valid history, use simple generate
+                response = model.generate_content(message)
         else:
             # Simple single message
             response = model.generate_content(message)
         
+        # Extract text from response
+        if hasattr(response, 'text'):
+            response_text = response.text
+        elif hasattr(response, 'parts'):
+            response_text = ''.join([part.text for part in response.parts if hasattr(part, 'text')])
+        else:
+            response_text = str(response)
+        
         return jsonify({
-            'response': response.text
+            'response': response_text
         })
+    except genai.errors.InvalidAPIKeyError as e:
+        return jsonify({'error': f'Неверный API ключ. Проверьте правильность ключа Gemini API.'}), 500
+    except genai.errors.APIError as e:
+        error_msg = str(e)
+        if 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
+            return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.'}), 500
+        elif 'permission' in error_msg.lower() or 'forbidden' in error_msg.lower():
+            return jsonify({'error': 'Нет доступа к API. Проверьте права доступа ключа.'}), 500
+        return jsonify({'error': f'Ошибка Gemini API: {error_msg}'}), 500
     except Exception as e:
         error_msg = str(e)
+        error_type = type(e).__name__
+        # Log full error for debugging (you can add logging here)
+        print(f"Chat API Error [{error_type}]: {error_msg}")
+        
         # Provide user-friendly error messages
-        if 'API_KEY' in error_msg or 'api' in error_msg.lower():
-            error_msg = 'Ошибка API ключа. Проверьте настройки.'
+        if 'API_KEY' in error_msg or 'api' in error_msg.lower() or 'key' in error_msg.lower():
+            return jsonify({'error': f'Ошибка API ключа: {error_msg}'}), 500
         elif 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
-            error_msg = 'Достигнут лимит запросов. Попробуйте позже.'
-        return jsonify({'error': f'Ошибка: {error_msg}'}), 500
+            return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.'}), 500
+        else:
+            return jsonify({'error': f'Ошибка: {error_msg}'}), 500
 
 
 if __name__ == "__main__":
