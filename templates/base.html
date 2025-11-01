@@ -13,18 +13,19 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
         nav {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
             padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
         }
 
         nav ul {
@@ -32,17 +33,19 @@
             display: flex;
             gap: 2rem;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         nav a {
-            color: white;
+            color: #c9d1d9;
             text-decoration: none;
             font-weight: 500;
-            transition: opacity 0.3s;
+            transition: color 0.2s;
+            font-size: 0.95rem;
         }
 
         nav a:hover {
-            opacity: 0.8;
+            color: #58a6ff;
         }
 
         .container {
@@ -54,18 +57,20 @@
         }
 
         .card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 3rem;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            padding: 2.5rem;
             max-width: 500px;
             width: 100%;
         }
 
         h1, h2 {
-            color: #333;
+            color: #f0f6fc;
             margin-bottom: 1.5rem;
             text-align: center;
+            font-weight: 600;
         }
 
         .form-group {
@@ -75,75 +80,93 @@
         label {
             display: block;
             margin-bottom: 0.5rem;
-            color: #555;
+            color: #c9d1d9;
             font-weight: 500;
+            font-size: 0.9rem;
         }
 
         input {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
             font-size: 1rem;
-            transition: border-color 0.3s;
+            color: #c9d1d9;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
         input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        input::placeholder {
+            color: #6e7681;
         }
 
         .btn {
             width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 0.875rem 1.5rem;
+            background: #238636;
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: background 0.2s, transform 0.1s;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+            background: #2ea043;
+            transform: translateY(-1px);
         }
 
         .btn:active {
             transform: translateY(0);
         }
 
+        .btn-secondary {
+            background: #21262d;
+            border: 1px solid #30363d;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
         .alert {
             padding: 1rem;
-            border-radius: 10px;
+            border-radius: 8px;
             margin-bottom: 1.5rem;
             font-weight: 500;
+            border: 1px solid;
         }
 
         .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(46, 160, 67, 0.1);
+            color: #3fb950;
+            border-color: rgba(46, 160, 67, 0.3);
         }
 
         .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(248, 81, 73, 0.1);
+            color: #f85149;
+            border-color: rgba(248, 81, 73, 0.3);
         }
 
         .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
+            background: rgba(251, 188, 5, 0.1);
+            color: #d29922;
+            border-color: rgba(251, 188, 5, 0.3);
         }
 
         .alert-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: rgba(88, 166, 255, 0.1);
+            color: #58a6ff;
+            border-color: rgba(88, 166, 255, 0.3);
         }
 
         .text-center {
@@ -152,7 +175,7 @@
         }
 
         .text-center a {
-            color: #667eea;
+            color: #58a6ff;
             text-decoration: none;
             font-weight: 500;
         }
@@ -162,44 +185,146 @@
         }
 
         .dashboard-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 3rem;
-            max-width: 800px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            padding: 2.5rem;
+            max-width: 900px;
             width: 100%;
         }
 
         .user-info {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 10px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            padding: 2rem;
+            border-radius: 12px;
             margin-bottom: 2rem;
         }
 
         .user-info p {
-            margin-bottom: 0.75rem;
-            color: #555;
+            margin-bottom: 1rem;
+            color: #8b949e;
+            font-size: 0.95rem;
         }
 
         .user-info strong {
-            color: #333;
+            color: #c9d1d9;
+        }
+
+        .username-display {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 50%, #ff6b9d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin: 2rem 0;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            animation: glow 3s ease-in-out infinite alternate;
+            position: relative;
+            padding: 1rem;
+            text-transform: uppercase;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        }
+
+        .username-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(188, 140, 255, 0.1) 50%, rgba(255, 107, 157, 0.1) 100%);
+            border-radius: 16px;
+            z-index: -1;
+            filter: blur(20px);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0% {
+                filter: drop-shadow(0 0 15px rgba(88, 166, 255, 0.6)) drop-shadow(0 0 30px rgba(88, 166, 255, 0.3));
+            }
+            50% {
+                filter: drop-shadow(0 0 25px rgba(188, 140, 255, 0.8)) drop-shadow(0 0 50px rgba(188, 140, 255, 0.4));
+            }
+            100% {
+                filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.7)) drop-shadow(0 0 40px rgba(255, 107, 157, 0.3));
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.5;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
         }
 
         .logo {
             font-size: 1.5rem;
-            font-weight: bold;
+            font-weight: 600;
+            color: #f0f6fc;
         }
 
         .nav-right {
             margin-left: auto;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem;
+            }
+
+            nav ul {
+                gap: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .card, .dashboard-card {
+                padding: 1.5rem;
+            }
+
+            .username-display {
+                font-size: 3rem;
+            }
+
+            h1, h2 {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .username-display {
+                font-size: 2.5rem;
+                padding: 0.75rem;
+            }
+
+            nav ul {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nav-right {
+                margin-left: 0;
+            }
         }
     </style>
 </head>
 <body>
     <nav>
         <ul>
-            <li class="logo"><a href="{{ url_for('index') }}">🔐 Flask Auth</a></li>
+            <li class="logo"><a href="{{ url_for('index') }}">Flask Auth</a></li>
             {% if session.get('user_id') %}
                 <li class="nav-right"><a href="{{ url_for('dashboard') }}">Панель управления</a></li>
                 <li><a href="{{ url_for('logout') }}">Выход</a></li>
