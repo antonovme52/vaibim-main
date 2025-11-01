@@ -155,6 +155,30 @@ def chat():
     return render_template('chat.html')
 
 
+@app.route('/api/list-models')
+@login_required
+def list_models():
+    """Эндпоинт для получения списка доступных моделей"""
+    try:
+        models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                models.append({
+                    'name': m.name,
+                    'display_name': m.display_name,
+                    'description': m.description
+                })
+        return jsonify({
+            'status': 'success',
+            'models': models[:10]  # First 10 models
+        })
+    except Exception as e:
+        return jsonify({
+            'error': f'Ошибка при получении списка моделей: {str(e)}',
+            'error_type': type(e).__name__
+        }), 500
+
+
 @app.route('/api/test-gemini')
 @login_required
 def test_gemini():
@@ -164,20 +188,38 @@ def test_gemini():
             return jsonify({'error': 'API ключ не настроен', 'key_set': False}), 500
         
         # Try simple API call with updated model names
+        # Priority: gemini-2.0-flash (latest), then fallback to older models
         model = None
-        model_names = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-pro']
+        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
         
+        last_error = None
         for model_name in model_names:
             try:
                 model = genai.GenerativeModel(model_name)
+                # Model initialized successfully
                 break
-            except google_exceptions.NotFound:
+            except google_exceptions.NotFound as e:
+                last_error = e
                 continue
-            except Exception:
+            except Exception as e:
+                last_error = e
                 continue
         
         if model is None:
-            return jsonify({'error': 'Не удалось найти доступную модель Gemini'}), 500
+            # Try to get available models for debugging
+            try:
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                return jsonify({
+                    'error': 'Не удалось найти доступную модель Gemini',
+                    'details': str(last_error) if last_error else 'Unknown error',
+                    'available_models': available_models[:5]  # First 5 for reference
+                }), 500
+            except:
+                return jsonify({
+                    'error': 'Не удалось найти доступную модель Gemini',
+                    'details': str(last_error) if last_error else 'Unknown error',
+                    'tried_models': model_names
+                }), 500
         
         response = model.generate_content("Скажи привет одним словом")
         
@@ -258,22 +300,30 @@ def api_chat():
         except Exception as config_error:
             return jsonify({'error': f'Ошибка конфигурации API: {str(config_error)}'}), 500
         
-        # Try to use the latest model, fallback to gemini-pro
-        # Updated model names for v1beta API
+        # Try to use the latest model, fallback to older models
+        # Priority: gemini-2.0-flash (latest), then fallback
         model = None
-        model_names = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest', 'gemini-pro']
+        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
         
+        last_error = None
         for model_name in model_names:
             try:
                 model = genai.GenerativeModel(model_name)
                 # Model initialized successfully
                 break
-            except google_exceptions.NotFound:
+            except google_exceptions.NotFound as e:
+                last_error = e
                 # Model not found, try next one
                 if model_name == model_names[-1]:  # Last model
-                    raise google_exceptions.NotFound(f"None of the models are available: {model_names}")
+                    # Try to get available models
+                    try:
+                        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                        raise google_exceptions.NotFound(f"None of the models are available: {model_names}. Available models: {available_models[:5]}")
+                    except:
+                        raise google_exceptions.NotFound(f"None of the models are available: {model_names}")
                 continue
             except Exception as model_error:
+                last_error = model_error
                 # Other errors, try next model or raise if last
                 if model_name == model_names[-1]:
                     raise model_error
