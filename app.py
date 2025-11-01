@@ -13,15 +13,15 @@ app.secret_key = os.urandom(24)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # OpenAI API configuration
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "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")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # Initialize OpenAI client
 try:
     if OPENAI_API_KEY and OPENAI_API_KEY.strip():
         openai_client = OpenAI(api_key=OPENAI_API_KEY.strip())
-        print(f"OpenAI API настроен. Ключ: {OPENAI_API_KEY[:10]}...")
+        print("OpenAI API настроен успешно.")
     else:
-        print("Внимание: OPENAI_API_KEY не установлен!")
+        print("Внимание: OPENAI_API_KEY не установлен в переменных окружения!")
         openai_client = None
 except Exception as e:
     print(f"Ошибка при настройке OpenAI API: {e}")
@@ -180,7 +180,6 @@ def test_openai():
             'status': 'success',
             'message': 'ChatGPT API работает!',
             'response': response.choices[0].message.content,
-            'key_preview': f"{OPENAI_API_KEY[:10]}...",
             'model': response.model
         })
     except Exception as e:
@@ -193,7 +192,7 @@ def test_openai():
                 'error': 'Неверный API ключ',
                 'details': error_msg,
                 'error_type': error_type,
-                'key_preview': f"{OPENAI_API_KEY[:10]}..." if OPENAI_API_KEY else "не установлен"
+                'key_set': bool(OPENAI_API_KEY)
             }), 500
         elif '403' in error_msg or 'forbidden' in error_msg.lower():
             return jsonify({
