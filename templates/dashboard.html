@@ -54,8 +54,23 @@
             resultDiv.innerHTML = '<div style="color: #8b949e;">Проверяю подключение к Gemini API...</div>';
             
             try {
-                const response = await fetch('/api/test-gemini');
-                const data = await response.json();
+                const response = await fetch('/api/test-gemini', {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                let data;
+                
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // Server returned HTML (probably redirect to login)
+                    const htmlText = await response.text();
+                    throw new Error('Сервер вернул HTML вместо JSON. Возможно, требуется повторная авторизация. Обновите страницу и войдите снова.');
+                }
                 
                 if (response.ok) {
                     resultDiv.innerHTML = `
@@ -67,8 +82,9 @@
                 } else {
                     resultDiv.innerHTML = `
                         <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
-                            <strong>✗ Ошибка:</strong> ${data.error}<br>
+                            <strong>✗ Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}<br>
                             ${data.details ? `<small style="color: #8b949e;">${data.details}</small>` : ''}
+                            ${data.error_type ? `<small style="color: #8b949e;">Тип: ${data.error_type}</small>` : ''}
                             <br><br>
                             <small style="color: #8b949e;">
                                 Проверьте:<br>
@@ -82,7 +98,10 @@
             } catch (error) {
                 resultDiv.innerHTML = `
                     <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
-                        <strong>✗ Ошибка подключения:</strong> ${error.message}
+                        <strong>✗ Ошибка подключения:</strong> ${error.message}<br>
+                        <small style="color: #8b949e; margin-top: 0.5rem; display: block;">
+                            Если проблема повторяется, убедитесь, что вы авторизованы в системе.
+                        </small>
                     </div>
                 `;
             } finally {

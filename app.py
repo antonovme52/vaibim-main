@@ -49,6 +49,9 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # Check if this is an API request (JSON expected)
+            if request.path.startswith('/api/') or request.is_json:
+                return jsonify({'error': 'Требуется авторизация', 'auth_required': True}), 401
             flash('Пожалуйста, войдите в систему', 'warning')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
@@ -170,17 +173,35 @@ def test_gemini():
             'key_preview': f"{GEMINI_API_KEY[:10]}...",
             'key_length': len(GEMINI_API_KEY)
         })
-    except genai.errors.InvalidAPIKeyError as e:
-        return jsonify({
-            'error': 'Неверный API ключ',
-            'details': str(e),
-            'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
-        }), 500
     except Exception as e:
-        return jsonify({
-            'error': f'Ошибка при тестировании: {str(e)}',
-            'error_type': type(e).__name__
-        }), 500
+        error_msg = str(e)
+        error_type = type(e).__name__
+        
+        # Check for API key related errors
+        if 'api' in error_msg.lower() and 'key' in error_msg.lower():
+            return jsonify({
+                'error': 'Неверный API ключ',
+                'details': error_msg,
+                'error_type': error_type,
+                'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
+            }), 500
+        elif '403' in error_msg or 'forbidden' in error_msg.lower():
+            return jsonify({
+                'error': 'Доступ запрещен. Проверьте API ключ и права доступа.',
+                'details': error_msg,
+                'error_type': error_type
+            }), 500
+        elif '429' in error_msg or 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
+            return jsonify({
+                'error': 'Достигнут лимит запросов. Попробуйте позже.',
+                'details': error_msg,
+                'error_type': error_type
+            }), 500
+        else:
+            return jsonify({
+                'error': f'Ошибка при тестировании: {error_msg}',
+                'error_type': error_type
+            }), 500
 
 
 @app.route('/api/chat', methods=['POST'])
@@ -256,28 +277,25 @@ def api_chat():
         return jsonify({
             'response': response_text
         })
-    except genai.errors.InvalidAPIKeyError as e:
-        return jsonify({'error': f'Неверный API ключ. Проверьте правильность ключа Gemini API.'}), 500
-    except genai.errors.APIError as e:
-        error_msg = str(e)
-        if 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
-            return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.'}), 500
-        elif 'permission' in error_msg.lower() or 'forbidden' in error_msg.lower():
-            return jsonify({'error': 'Нет доступа к API. Проверьте права доступа ключа.'}), 500
-        return jsonify({'error': f'Ошибка Gemini API: {error_msg}'}), 500
     except Exception as e:
         error_msg = str(e)
         error_type = type(e).__name__
         # Log full error for debugging (you can add logging here)
         print(f"Chat API Error [{error_type}]: {error_msg}")
         
-        # Provide user-friendly error messages
-        if 'API_KEY' in error_msg or 'api' in error_msg.lower() or 'key' in error_msg.lower():
-            return jsonify({'error': f'Ошибка API ключа: {error_msg}'}), 500
-        elif 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
-            return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.'}), 500
+        # Provide user-friendly error messages based on error content
+        error_lower = error_msg.lower()
+        
+        if 'api' in error_lower and 'key' in error_lower:
+            return jsonify({'error': 'Неверный API ключ. Проверьте правильность ключа Gemini API.', 'details': error_msg}), 500
+        elif '403' in error_msg or 'forbidden' in error_lower or 'permission' in error_lower:
+            return jsonify({'error': 'Нет доступа к API. Проверьте права доступа ключа.', 'details': error_msg}), 500
+        elif '429' in error_msg or 'quota' in error_lower or 'limit' in error_lower or 'rate' in error_lower:
+            return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.', 'details': error_msg}), 500
+        elif '404' in error_msg or 'not found' in error_lower:
+            return jsonify({'error': 'Модель не найдена. Проверьте название модели.', 'details': error_msg}), 500
         else:
-            return jsonify({'error': f'Ошибка: {error_msg}'}), 500
+            return jsonify({'error': f'Ошибка Gemini API: {error_msg}', 'error_type': error_type}), 500
 
 
 if __name__ == "__main__":
