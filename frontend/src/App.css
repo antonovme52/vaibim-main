@@ -1,0 +1,225 @@
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 2.5rem;
+  max-width: 500px;
+  width: 100%;
+}
+
+.dashboard-card {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  padding: 2.5rem;
+  max-width: 900px;
+  width: 100%;
+}
+
+h1, h2 {
+  color: #f0f6fc;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #c9d1d9;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #c9d1d9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+input:focus {
+  outline: none;
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+}
+
+input::placeholder {
+  color: #6e7681;
+}
+
+.btn {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: #238636;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.btn:hover {
+  background: #2ea043;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: #21262d;
+  border: 1px solid #30363d;
+}
+
+.btn-secondary:hover {
+  background: #30363d;
+}
+
+.btn-danger {
+  background: #da3633;
+}
+
+.btn-danger:hover {
+  background: #f85149;
+}
+
+.btn-primary {
+  background: #58a6ff;
+}
+
+.btn-primary:hover {
+  background: #79c0ff;
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  border: 1px solid;
+}
+
+.alert-success {
+  background: rgba(46, 160, 67, 0.1);
+  color: #3fb950;
+  border-color: rgba(46, 160, 67, 0.3);
+}
+
+.alert-danger {
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.3);
+}
+
+.alert-warning {
+  background: rgba(251, 188, 5, 0.1);
+  color: #d29922;
+  border-color: rgba(251, 188, 5, 0.3);
+}
+
+.alert-info {
+  background: rgba(88, 166, 255, 0.1);
+  color: #58a6ff;
+  border-color: rgba(88, 166, 255, 0.3);
+}
+
+.text-center {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.text-center a {
+  color: #58a6ff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.text-center a:hover {
+  text-decoration: underline;
+}
+
+.username-display {
+  font-size: 4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 50%, #ff6b9d 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-align: center;
+  margin: 2rem 0;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  animation: glow 3s ease-in-out infinite alternate;
+  position: relative;
+  padding: 1rem;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+@keyframes glow {
+  0% {
+    filter: drop-shadow(0 0 15px rgba(88, 166, 255, 0.6)) drop-shadow(0 0 30px rgba(88, 166, 255, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(188, 140, 255, 0.8)) drop-shadow(0 0 50px rgba(188, 140, 255, 0.4));
+  }
+  100% {
+    filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.7)) drop-shadow(0 0 40px rgba(255, 107, 157, 0.3));
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .card, .dashboard-card {
+    padding: 1.5rem;
+  }
+
+  .username-display {
+    font-size: 3rem;
+  }
+
+  h1, h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .username-display {
+    font-size: 2.5rem;
+    padding: 0.75rem;
+  }
+}
+
