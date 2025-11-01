@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Flask Auth App{% endblock %}
+
+{% block content %}
+    <h1>Добро пожаловать!</h1>
+    <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+        Это приложение с авторизацией на Flask и SQLite
+    </p>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <a href="{{ url_for('login') }}" style="flex: 1;">
+            <button class="btn">Войти</button>
+        </a>
+        <a href="{{ url_for('register') }}" style="flex: 1;">
+            <button class="btn" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                Регистрация
+            </button>
+        </a>
+    </div>
+
+    <div style="margin-top: 3rem; padding: 2rem; background: #f8f9fa; border-radius: 10px;">
+        <h3 style="color: #333; margin-bottom: 1rem;">Возможности:</h3>
+        <ul style="color: #666; line-height: 2;">
+            <li>✅ Безопасная регистрация пользователей</li>
+            <li>✅ Авторизация с хешированием паролей</li>
+            <li>✅ Защищенные страницы</li>
+            <li>✅ База данных SQLite</li>
+            <li>✅ Современный интерфейс</li>
+        </ul>
+    </div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Вход - Flask Auth App{% endblock %}
+
+{% block content %}
+    <h2>Вход в систему</h2>
+    
+    <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-group">
+            <label for="username">Имя пользователя</label>
+            <input type="text" id="username" name="username" required autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Пароль</label>
+            <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn">Войти</button>
+    </form>
+
+    <div class="text-center">
+        <p>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a></p>
+    </div>
+{% endblock %}

@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  flaskapp:
+    build: .
+    container_name: flask_container
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./users.db:/app/users.db  # сохраняем базу
+    restart: always
