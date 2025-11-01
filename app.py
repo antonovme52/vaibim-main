@@ -1,15 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import psycopg2
 import psycopg2.extras
 import os
+import google.generativeai as genai
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 # Database URL from Render environment
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Gemini API configuration
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDXvXzD2xqmsWQFv2FqnyYD9ER22qbkIgY")
+genai.configure(api_key=GEMINI_API_KEY)
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -129,6 +134,63 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for('index'))
+
+
+@app.route('/chat')
+@login_required
+def chat():
+    return render_template('chat.html')
+
+
+@app.route('/api/chat', methods=['POST'])
+@login_required
+def api_chat():
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        history = data.get('history', [])
+        
+        if not message:
+            return jsonify({'error': 'Сообщение не может быть пустым'}), 400
+        
+        # Try to use the latest model, fallback to gemini-pro
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+        except:
+            try:
+                model = genai.GenerativeModel('gemini-1.5-pro')
+            except:
+                model = genai.GenerativeModel('gemini-pro')
+        
+        # Build conversation context if history is provided
+        if history and len(history) > 0:
+            # Convert history to the format expected by Gemini
+            chat_history = []
+            for msg in history[-10:]:  # Keep last 10 messages for context
+                role = 'user' if msg.get('isUser') else 'model'
+                chat_history.append({
+                    'role': role,
+                    'parts': [msg.get('content', '')]
+                })
+            
+            # Start a chat session with history
+            chat = model.start_chat(history=chat_history)
+            response = chat.send_message(message)
+        else:
+            # Simple single message
+            response = model.generate_content(message)
+        
+        return jsonify({
+            'response': response.text
+        })
+    except Exception as e:
+        error_msg = str(e)
+        # Provide user-friendly error messages
+        if 'API_KEY' in error_msg or 'api' in error_msg.lower():
+            error_msg = 'Ошибка API ключа. Проверьте настройки.'
+        elif 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
+            error_msg = 'Достигнут лимит запросов. Попробуйте позже.'
+        return jsonify({'error': f'Ошибка: {error_msg}'}), 500
 
 
 if __name__ == "__main__":

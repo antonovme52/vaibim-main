@@ -327,6 +327,7 @@
             <li class="logo"><a href="{{ url_for('index') }}">Flask Auth</a></li>
             {% if session.get('user_id') %}
                 <li class="nav-right"><a href="{{ url_for('dashboard') }}">Панель управления</a></li>
+                <li><a href="{{ url_for('chat') }}">Чат</a></li>
                 <li><a href="{{ url_for('logout') }}">Выход</a></li>
             {% else %}
                 <li class="nav-right"><a href="{{ url_for('login') }}">Вход</a></li>
