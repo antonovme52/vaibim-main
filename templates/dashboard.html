@@ -25,9 +25,9 @@
     </div>
 
     <div style="background: rgba(188, 140, 255, 0.05); border: 1px solid rgba(188, 140, 255, 0.2); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; text-align: center;">
-        <h3 style="color: #f0f6fc; margin-bottom: 1rem; font-weight: 600;">🤖 AI Чат</h3>
+        <h3 style="color: #f0f6fc; margin-bottom: 1rem; font-weight: 600;">💬 ChatGPT</h3>
         <p style="color: #8b949e; line-height: 1.6; margin-bottom: 1.5rem;">
-            Общайтесь с AI-ассистентом на основе Gemini. Задавайте вопросы, получайте помощь и исследуйте возможности искусственного интеллекта.
+            Общайтесь с ChatGPT. Задавайте вопросы, получайте помощь и исследуйте возможности искусственного интеллекта от OpenAI.
         </p>
         <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
             <a href="{{ url_for('chat') }}" style="display: inline-block;">
@@ -37,9 +37,6 @@
             </a>
             <button id="testApiBtn" class="btn" style="background: #30363d; border: 1px solid #484f58; min-width: 200px;">
                 Тест API
-            </button>
-            <button id="listModelsBtn" class="btn" style="background: #21262d; border: 1px solid #30363d; min-width: 200px;">
-                Список моделей
             </button>
         </div>
         <div id="apiTestResult" style="margin-top: 1rem; display: none;"></div>
@@ -54,10 +51,10 @@
             btn.disabled = true;
             btn.innerHTML = 'Тестирую...';
             resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div style="color: #8b949e;">Проверяю подключение к Gemini API...</div>';
+            resultDiv.innerHTML = '<div style="color: #8b949e;">Проверяю подключение к ChatGPT API...</div>';
             
             try {
-                const response = await fetch('/api/test-gemini', {
+                const response = await fetch('/api/test-openai', {
                     headers: {
                         'Accept': 'application/json'
                     }
@@ -91,9 +88,9 @@
                             <br><br>
                             <small style="color: #8b949e;">
                                 Проверьте:<br>
-                                1. Установлена ли библиотека: <code>pip install google-generativeai</code><br>
+                                1. Установлена ли библиотека: <code>pip install openai</code><br>
                                 2. Правильность API ключа в app.py<br>
-                                3. Активен ли ключ в <a href="https://ai.google.dev/" target="_blank" style="color: #58a6ff;">Google AI Studio</a>
+                                3. Активен ли ключ и есть ли баланс в <a href="https://platform.openai.com/" target="_blank" style="color: #58a6ff;">OpenAI Platform</a>
                             </small>
                         </div>
                     `;
@@ -113,67 +110,6 @@
             }
         });
 
-        // List models button handler
-        document.getElementById('listModelsBtn')?.addEventListener('click', async function() {
-            const btn = this;
-            const resultDiv = document.getElementById('apiTestResult');
-            const originalText = btn.innerHTML;
-            
-            btn.disabled = true;
-            btn.innerHTML = 'Загрузка...';
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div style="color: #8b949e;">Получаю список доступных моделей...</div>';
-            
-            try {
-                const response = await fetch('/api/list-models', {
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                const contentType = response.headers.get('content-type');
-                let data;
-                
-                if (contentType && contentType.includes('application/json')) {
-                    data = await response.json();
-                } else {
-                    throw new Error('Сервер вернул HTML вместо JSON');
-                }
-                
-                if (response.ok && data.models) {
-                    const modelsList = data.models.map(m => 
-                        `<div style="margin: 0.5rem 0; padding: 0.75rem; background: rgba(88, 166, 255, 0.05); border-radius: 8px; border: 1px solid rgba(88, 166, 255, 0.2);">
-                            <strong style="color: #58a6ff;">${m.name}</strong><br>
-                            <small style="color: #8b949e;">${m.display_name || 'N/A'}</small>
-                        </div>`
-                    ).join('');
-                    
-                    resultDiv.innerHTML = `
-                        <div style="background: rgba(46, 160, 67, 0.1); border: 1px solid rgba(46, 160, 67, 0.3); padding: 1rem; border-radius: 8px; color: #3fb950;">
-                            <strong>✓ Найдено моделей: ${data.models.length}</strong>
-                            <div style="margin-top: 1rem; max-height: 400px; overflow-y: auto;">
-                                ${modelsList}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `
-                        <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
-                            <strong>✗ Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <div style="background: rgba(248, 81, 73, 0.1); border: 1px solid rgba(248, 81, 73, 0.3); padding: 1rem; border-radius: 8px; color: #f85149;">
-                        <strong>✗ Ошибка подключения:</strong> ${error.message}
-                    </div>
-                `;
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        });
     </script>
 
     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">

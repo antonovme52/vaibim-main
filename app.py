@@ -4,8 +4,7 @@ from functools import wraps
 import psycopg2
 import psycopg2.extras
 import os
-import google.generativeai as genai
-from google.api_core import exceptions as google_exceptions
+from openai import OpenAI
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -13,18 +12,20 @@ app.secret_key = os.urandom(24)
 # Database URL from Render environment
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Gemini API configuration
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyDXvXzD2xqmsWQFv2FqnyYD9ER22qbkIgY")
+# OpenAI API configuration
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "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")
 
-# Configure Gemini API
+# Initialize OpenAI client
 try:
-    if GEMINI_API_KEY and GEMINI_API_KEY.strip():
-        genai.configure(api_key=GEMINI_API_KEY.strip())
-        print(f"Gemini API настроен. Ключ: {GEMINI_API_KEY[:10]}...")
+    if OPENAI_API_KEY and OPENAI_API_KEY.strip():
+        openai_client = OpenAI(api_key=OPENAI_API_KEY.strip())
+        print(f"OpenAI API настроен. Ключ: {OPENAI_API_KEY[:10]}...")
     else:
-        print("Внимание: GEMINI_API_KEY не установлен!")
+        print("Внимание: OPENAI_API_KEY не установлен!")
+        openai_client = None
 except Exception as e:
-    print(f"Ошибка при настройке Gemini API: {e}")
+    print(f"Ошибка при настройке OpenAI API: {e}")
+    openai_client = None
 
 def get_db_connection():
     conn = psycopg2.connect(DATABASE_URL, sslmode='require')
@@ -155,109 +156,44 @@ def chat():
     return render_template('chat.html')
 
 
-@app.route('/api/list-models')
+@app.route('/api/test-openai')
 @login_required
-def list_models():
-    """Эндпоинт для получения списка доступных моделей"""
+def test_openai():
+    """Тестовый эндпоинт для проверки работы OpenAI API"""
     try:
-        models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                models.append({
-                    'name': m.name,
-                    'display_name': m.display_name,
-                    'description': m.description
-                })
-        return jsonify({
-            'status': 'success',
-            'models': models[:10]  # First 10 models
-        })
-    except Exception as e:
-        return jsonify({
-            'error': f'Ошибка при получении списка моделей: {str(e)}',
-            'error_type': type(e).__name__
-        }), 500
-
-
-@app.route('/api/test-gemini')
-@login_required
-def test_gemini():
-    """Тестовый эндпоинт для проверки работы Gemini API"""
-    try:
-        if not GEMINI_API_KEY or not GEMINI_API_KEY.strip():
+        if not openai_client:
+            return jsonify({'error': 'OpenAI клиент не инициализирован', 'key_set': False}), 500
+        
+        if not OPENAI_API_KEY or not OPENAI_API_KEY.strip():
             return jsonify({'error': 'API ключ не настроен', 'key_set': False}), 500
         
-        # Try simple API call with updated model names
-        # Priority: gemini-2.0-flash (latest), then fallback to older models
-        model = None
-        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
-        
-        last_error = None
-        for model_name in model_names:
-            try:
-                model = genai.GenerativeModel(model_name)
-                # Model initialized successfully
-                break
-            except google_exceptions.NotFound as e:
-                last_error = e
-                continue
-            except Exception as e:
-                last_error = e
-                continue
-        
-        if model is None:
-            # Try to get available models for debugging
-            try:
-                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                return jsonify({
-                    'error': 'Не удалось найти доступную модель Gemini',
-                    'details': str(last_error) if last_error else 'Unknown error',
-                    'available_models': available_models[:5]  # First 5 for reference
-                }), 500
-            except:
-                return jsonify({
-                    'error': 'Не удалось найти доступную модель Gemini',
-                    'details': str(last_error) if last_error else 'Unknown error',
-                    'tried_models': model_names
-                }), 500
-        
-        response = model.generate_content("Скажи привет одним словом")
+        # Try simple API call with ChatGPT
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "user", "content": "Скажи привет одним словом"}
+            ],
+            max_tokens=50
+        )
         
         return jsonify({
             'status': 'success',
-            'message': 'Gemini API работает!',
-            'response': response.text,
-            'key_preview': f"{GEMINI_API_KEY[:10]}...",
-            'key_length': len(GEMINI_API_KEY)
+            'message': 'ChatGPT API работает!',
+            'response': response.choices[0].message.content,
+            'key_preview': f"{OPENAI_API_KEY[:10]}...",
+            'model': response.model
         })
-    except google_exceptions.PermissionDenied as e:
-        return jsonify({
-            'error': 'Нет доступа к API. Проверьте API ключ и права доступа.',
-            'details': str(e),
-            'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
-        }), 500
-    except google_exceptions.NotFound as e:
-        return jsonify({
-            'error': 'Модель не найдена или недоступна.',
-            'details': str(e),
-            'error_type': 'NotFound'
-        }), 404
-    except google_exceptions.ResourceExhausted as e:
-        return jsonify({
-            'error': 'Достигнут лимит запросов. Попробуйте позже.',
-            'details': str(e)
-        }), 429
     except Exception as e:
         error_msg = str(e)
         error_type = type(e).__name__
         
         # Check for API key related errors
-        if 'api' in error_msg.lower() and 'key' in error_msg.lower():
+        if 'api' in error_msg.lower() and 'key' in error_msg.lower() or 'authentication' in error_msg.lower():
             return jsonify({
                 'error': 'Неверный API ключ',
                 'details': error_msg,
                 'error_type': error_type,
-                'key_preview': f"{GEMINI_API_KEY[:10]}..." if GEMINI_API_KEY else "не установлен"
+                'key_preview': f"{OPENAI_API_KEY[:10]}..." if OPENAI_API_KEY else "не установлен"
             }), 500
         elif '403' in error_msg or 'forbidden' in error_msg.lower():
             return jsonify({
@@ -268,6 +204,12 @@ def test_gemini():
         elif '429' in error_msg or 'quota' in error_msg.lower() or 'limit' in error_msg.lower():
             return jsonify({
                 'error': 'Достигнут лимит запросов. Попробуйте позже.',
+                'details': error_msg,
+                'error_type': error_type
+            }), 500
+        elif 'insufficient_quota' in error_msg.lower() or 'billing' in error_msg.lower():
+            return jsonify({
+                'error': 'Недостаточно средств на счету OpenAI. Пополните баланс.',
                 'details': error_msg,
                 'error_type': error_type
             }), 500
@@ -289,91 +231,41 @@ def api_chat():
         if not message:
             return jsonify({'error': 'Сообщение не может быть пустым'}), 400
         
-        # Verify API key is configured and re-configure if needed
-        api_key = GEMINI_API_KEY.strip() if GEMINI_API_KEY else None
-        if not api_key or api_key == '':
-            return jsonify({'error': 'API ключ не настроен. Установите GEMINI_API_KEY'}), 500
+        if not openai_client:
+            return jsonify({'error': 'OpenAI клиент не инициализирован'}), 500
         
-        # Re-configure API key to ensure it's set correctly
-        try:
-            genai.configure(api_key=api_key)
-        except Exception as config_error:
-            return jsonify({'error': f'Ошибка конфигурации API: {str(config_error)}'}), 500
+        # Build messages array for OpenAI API
+        messages = []
         
-        # Try to use the latest model, fallback to older models
-        # Priority: gemini-2.0-flash (latest), then fallback
-        model = None
-        model_names = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']
-        
-        last_error = None
-        for model_name in model_names:
-            try:
-                model = genai.GenerativeModel(model_name)
-                # Model initialized successfully
-                break
-            except google_exceptions.NotFound as e:
-                last_error = e
-                # Model not found, try next one
-                if model_name == model_names[-1]:  # Last model
-                    # Try to get available models
-                    try:
-                        available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                        raise google_exceptions.NotFound(f"None of the models are available: {model_names}. Available models: {available_models[:5]}")
-                    except:
-                        raise google_exceptions.NotFound(f"None of the models are available: {model_names}")
-                continue
-            except Exception as model_error:
-                last_error = model_error
-                # Other errors, try next model or raise if last
-                if model_name == model_names[-1]:
-                    raise model_error
-                continue
-        
-        if model is None:
-            return jsonify({'error': 'Не удалось инициализировать модель Gemini'}), 500
-        
-        # Build conversation context if history is provided
+        # Add conversation history if available
         if history and len(history) > 0:
-            # Convert history to the format expected by Gemini
-            chat_history = []
-            for msg in history[-10:]:  # Keep last 10 messages for context
+            for msg in history[-20:]:  # Keep last 20 messages for context
                 if msg.get('content'):
-                    role = 'user' if msg.get('isUser') else 'model'
-                    chat_history.append({
+                    role = 'user' if msg.get('isUser') else 'assistant'
+                    messages.append({
                         'role': role,
-                        'parts': [msg.get('content', '')]
+                        'content': msg.get('content', '')
                     })
-            
-            # Start a chat session with history
-            if chat_history:
-                chat = model.start_chat(history=chat_history)
-                response = chat.send_message(message)
-            else:
-                # No valid history, use simple generate
-                response = model.generate_content(message)
-        else:
-            # Simple single message
-            response = model.generate_content(message)
         
-        # Extract text from response
-        if hasattr(response, 'text'):
-            response_text = response.text
-        elif hasattr(response, 'parts'):
-            response_text = ''.join([part.text for part in response.parts if hasattr(part, 'text')])
-        else:
-            response_text = str(response)
+        # Add current message
+        messages.append({
+            'role': 'user',
+            'content': message
+        })
+        
+        # Call OpenAI API
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",  # Using gpt-4o-mini as default, can be changed to gpt-4, gpt-3.5-turbo, etc.
+            messages=messages,
+            max_tokens=1000,
+            temperature=0.7
+        )
+        
+        response_text = response.choices[0].message.content
         
         return jsonify({
             'response': response_text
         })
-    except google_exceptions.PermissionDenied as e:
-        return jsonify({'error': 'Нет доступа к API. Проверьте API ключ и права доступа.', 'details': str(e)}), 500
-    except google_exceptions.NotFound as e:
-        return jsonify({'error': 'Модель не найдена или недоступна. Попробую другую модель.', 'details': str(e)}), 404
-    except google_exceptions.InvalidArgument as e:
-        return jsonify({'error': 'Неверные параметры запроса.', 'details': str(e)}), 400
-    except google_exceptions.ResourceExhausted as e:
-        return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.', 'details': str(e)}), 429
     except Exception as e:
         error_msg = str(e)
         error_type = type(e).__name__
@@ -383,16 +275,18 @@ def api_chat():
         # Provide user-friendly error messages based on error content
         error_lower = error_msg.lower()
         
-        if 'api' in error_lower and 'key' in error_lower:
-            return jsonify({'error': 'Неверный API ключ. Проверьте правильность ключа Gemini API.', 'details': error_msg}), 500
+        if 'api' in error_lower and 'key' in error_lower or 'authentication' in error_lower:
+            return jsonify({'error': 'Неверный API ключ. Проверьте правильность ключа OpenAI API.', 'details': error_msg}), 500
         elif '403' in error_msg or 'forbidden' in error_lower or 'permission' in error_lower:
             return jsonify({'error': 'Нет доступа к API. Проверьте права доступа ключа.', 'details': error_msg}), 500
         elif '429' in error_msg or 'quota' in error_lower or 'limit' in error_lower or 'rate' in error_lower:
             return jsonify({'error': 'Достигнут лимит запросов. Попробуйте позже.', 'details': error_msg}), 500
         elif '404' in error_msg or 'not found' in error_lower:
             return jsonify({'error': 'Модель не найдена. Проверьте название модели.', 'details': error_msg}), 500
+        elif 'insufficient_quota' in error_lower or 'billing' in error_lower:
+            return jsonify({'error': 'Недостаточно средств на счету OpenAI. Пополните баланс.', 'details': error_msg}), 500
         else:
-            return jsonify({'error': f'Ошибка Gemini API: {error_msg}', 'error_type': error_type}), 500
+            return jsonify({'error': f'Ошибка ChatGPT API: {error_msg}', 'error_type': error_type}), 500
 
 
 if __name__ == "__main__":
